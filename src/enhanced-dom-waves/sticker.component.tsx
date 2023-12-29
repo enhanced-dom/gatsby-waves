@@ -14,7 +14,7 @@ const getParsedCodeStepsSlice = (steps: React.ReactElement[], curr: React.ReactE
     }
     stepsSlice.push(step)
   }
-  for (const step of steps.slice(0, Math.max(currentStepIndex - 1, 0)).reverse()) {
+  for (const step of steps.slice(0, currentStepIndex).reverse()) {
     if (!isCode(step)) {
       break
     }
