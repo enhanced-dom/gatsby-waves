@@ -1,11 +1,11 @@
-import React, { useMemo } from 'react'
+import { useMemo, type ReactElement, type PropsWithChildren } from 'react'
 
 import { CodeSurfer as CodeStickerSteps } from '../code-surfer/standalone'
 import { readStepFromElement } from '../gatsby-theme-waves/stuff/step-reader'
 
-const isCode = (e?: React.ReactElement) => e?.type === 'pre'
+const isCode = (e?: ReactElement) => e?.type === 'pre'
 
-const getParsedCodeStepsSlice = (steps: React.ReactElement[], curr: React.ReactElement) => {
+const getParsedCodeStepsSlice = (steps: ReactElement[], curr: ReactElement) => {
   const stepsSlice = [curr]
   const currentStepIndex = steps.indexOf(curr)
   for (const step of steps.slice(currentStepIndex + 1, steps.length)) {
@@ -27,11 +27,7 @@ const getParsedCodeStepsSlice = (steps: React.ReactElement[], curr: React.ReactE
   return parsedStepsSlice
 }
 
-const OpacityStickerStep = ({
-  variant = 'default',
-  visible,
-  children,
-}: React.PropsWithChildren<{ variant?: string; visible?: boolean }>) => {
+const OpacityStickerStep = ({ variant = 'default', visible, children }: PropsWithChildren<{ variant?: string; visible?: boolean }>) => {
   if (!children) {
     return null
   }
@@ -48,15 +44,7 @@ const OpacityStickerStep = ({
   )
 }
 
-export const Sticker = ({
-  progress = 0,
-  steps,
-  variant = 'default',
-}: {
-  progress: number
-  steps: React.ReactElement[]
-  variant?: string
-}) => {
+export const Sticker = ({ progress = 0, steps, variant = 'default' }: { progress: number; steps: ReactElement[]; variant?: string }) => {
   const currentIndex = Math.round(progress)
   let prevIndex = currentIndex - 1
   let prevStep = steps[currentIndex - 1]
