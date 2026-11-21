@@ -1,13 +1,9 @@
 export function fromEntries<K extends string | number | symbol, V>(pairs: [K, V][]) {
   const result = {} as Record<K, V>
 
-  let index = -1,
-    length = pairs == null ? 0 : pairs.length
-
-  while (++index < length) {
-    const pair = pairs[index]
-    result[pair[0]] = pair[1]
-  }
+  pairs?.forEach(([key, value]) => {
+    result[key] = value
+  })
 
   return result
 }

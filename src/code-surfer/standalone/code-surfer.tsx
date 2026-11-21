@@ -57,8 +57,9 @@ function getFakeSteps(parsedSteps: Step[], tokens: string[][]) {
   let shortLineKey = 0
   let length = 100
   for (let i = 1; i < tokens.length; i++) {
-    if (tokens[i].length < length) {
-      length = tokens[i].length
+    const lineLength = tokens[i]?.length ?? length
+    if (lineLength < length) {
+      length = lineLength
       shortLineKey = i
     }
     if (length <= 1) {
@@ -66,15 +67,16 @@ function getFakeSteps(parsedSteps: Step[], tokens: string[][]) {
     }
   }
 
-  const fakeSteps = parsedSteps.map((step) => {
+  return parsedSteps.map((step, i) => {
+    if (i === 0) {
+      return step
+    }
     const fakeStep: Step = {
       ...step,
       lines: step.lines.map((_) => shortLineKey),
       longestLineIndex: 0,
     }
-    fakeStep.lines[0] = step.lines[step.longestLineIndex]
+    fakeStep.lines[0] = step.lines[step.longestLineIndex] ?? shortLineKey
     return fakeStep
   })
-  fakeSteps[0] = parsedSteps[0]
-  return fakeSteps
 }

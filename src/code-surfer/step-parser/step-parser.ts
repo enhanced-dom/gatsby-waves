@@ -5,17 +5,18 @@ import { tokenize } from './tokenizer'
 import { parseFocus, getFocusSize } from './focus-parser'
 import { toEntries } from './object-entries'
 
-export function parseSteps(
-  inputSteps: {
-    code: string
-    focus?: string
-    lang?: string
-    title?: string
-    subtitle?: string
-    showNumbers?: boolean
-  }[],
-) {
-  if (inputSteps.length === 0) {
+type InputStep = {
+  code: string
+  focus?: string
+  lang?: string
+  title?: string
+  subtitle?: string
+  showNumbers?: boolean
+}
+
+export function parseSteps(inputSteps: InputStep[]) {
+  const [firstStep] = inputSteps
+  if (!firstStep) {
     return {
       tokens: [],
       types: [],
@@ -23,7 +24,7 @@ export function parseSteps(
     }
   }
 
-  const { lang, showNumbers = false } = inputSteps[0]
+  const { lang, showNumbers = false } = firstStep
 
   if (!lang) {
     throw new Error('Missing code language')
@@ -45,18 +46,19 @@ export function parseSteps(
   }[] = []
 
   steps.forEach((step, i) => {
-    const code = codeList[i]
+    const code = codeList[i] ?? ''
+    const inputStep = inputSteps[i]
     const { tokens, types } = tokenize(code, lang)
     const lineKeys: number[] = []
     step.forEach((lineId, lineIndex) => {
       const lineKey = lineIds.indexOf(lineId)
-      allTokens[lineKey] = tokens[lineIndex]
-      allTypes[lineKey] = types[lineIndex]
+      allTokens[lineKey] = tokens[lineIndex] ?? []
+      allTypes[lineKey] = types[lineIndex] ?? []
       lineKeys.push(lineKey)
     })
 
-    const focusString = inputSteps[i].focus
-    const prevLineKeys = allSteps[i - 1] ? allSteps[i - 1].lines : []
+    const focusString = inputStep?.focus
+    const prevLineKeys = allSteps[i - 1]?.lines ?? []
     const focus = focusString ? parseFocus(focusString) : getDefaultFocus(prevLineKeys, lineKeys)
     const { focusCenter, focusCount } = getFocusSize(focus)
     allSteps.push({
@@ -65,8 +67,8 @@ export function parseSteps(
       focusCenter,
       focusCount,
       longestLineIndex: getLongestLineIndex(code),
-      title: inputSteps[i].title,
-      subtitle: inputSteps[i].subtitle,
+      title: inputStep?.title,
+      subtitle: inputStep?.subtitle,
     })
   })
 
@@ -75,8 +77,11 @@ export function parseSteps(
     toEntries(focus).forEach(([lineIndex, lineFocus]) => {
       if (Array.isArray(lineFocus)) {
         const lineKey = lines[lineIndex]
-        const lineTypes = allTypes[lineKey]
-        const lineTokens = allTokens[lineKey]
+        if (lineKey === undefined) {
+          return
+        }
+        const lineTypes = allTypes[lineKey] ?? []
+        const lineTokens = allTokens[lineKey] ?? []
         const [newTypes, newTokens] = splitIntoColumns(lineTypes, lineTokens)
         allTypes[lineKey] = newTypes
         allTokens[lineKey] = newTokens
@@ -88,7 +93,7 @@ export function parseSteps(
   allTokens.forEach((line, lineKey) => {
     if (line.length === 0) {
       line.push(`\u200B`)
-      allTypes[lineKey].push('plain')
+      allTypes[lineKey]?.push('plain')
     }
   })
 
@@ -104,13 +109,8 @@ export function parseSteps(
   }
 }
 
-function getCodeList(
-  inputSteps: {
-    code: string
-    lang?: string | undefined
-  }[],
-) {
-  const firstLang = inputSteps[0].lang
+function getCodeList(inputSteps: Pick<InputStep, 'code' | 'lang'>[]) {
+  const firstLang = inputSteps[0]?.lang
   if (firstLang === 'diff') {
     return inputSteps.map((s) => s.code)
   }
@@ -118,6 +118,9 @@ function getCodeList(
   let prevCode = ''
   return inputSteps.map(({ code, lang }) => {
     const stepCode = lang === 'diff' ? applyPatch(prevCode, code) : code
+    if (stepCode === false) {
+      throw new Error('Could not apply diff patch to previous step code')
+    }
     prevCode = stepCode
     return stepCode
   })
@@ -127,7 +130,7 @@ function splitIntoColumns(types: string[], tokens: string[]): [string[], string[
   const newTypes: string[] = []
   const newTokens: string[] = []
   tokens.forEach((token, i) => {
-    const tokenType = types[i]
+    const tokenType = types[i] ?? 'plain'
     Array.from(token).forEach((char) => {
       newTokens.push(char)
       newTypes.push(tokenType)
@@ -159,7 +162,7 @@ function getLongestLineIndex(code: string) {
 
   let longest = 0
   lines.forEach((line, i) => {
-    if (lines[longest].length < line.length) {
+    if ((lines[longest]?.length ?? 0) < line.length) {
       longest = i
     }
   })

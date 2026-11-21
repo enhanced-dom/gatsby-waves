@@ -206,9 +206,7 @@ export function chain<T extends object>(steps: [number, undefined | ((t: number)
   return (t: number) => {
     const style = Object.assign({}, start)
     let prevTop = 0
-    for (let i = 0; i < steps.length; i++) {
-      const [top, fn] = steps[i]
-
+    for (const [top, fn] of steps) {
       const stept = t > top ? 1 : (t - prevTop) / (top - prevTop)
 
       if (fn) {

@@ -1,15 +1,17 @@
+///<reference path="../../code-surfer/standalone/types.d.ts" />
+import type { InputStep } from 'code-surfer-types'
 import { parse } from 'shell-quote'
 
-export function readStepFromElement(element: React.ReactElement) {
-  if (!element.props.children || !element.props.children.props) {
+export function readStepFromElement(element: React.ReactElement): InputStep | null {
+  const codeProps = element.props.children?.props
+  if (!codeProps) {
     return null
   }
-  const { props } = element.props.children
-  const className = props.className
+  const { className = '', children, metastring } = codeProps
   return {
-    code: props.children,
+    code: children,
     lang: className.substring('language-'.length),
-    ...parseMetastring(props.metastring),
+    ...parseMetastring(metastring),
   }
 }
 
@@ -26,7 +28,9 @@ function parseMetastring(metastring?: string) {
       result.focus = arg
     } else {
       const [key, value] = arg.split(/=(.*)/)
-      result[key] = value
+      if (key) {
+        result[key] = value
+      }
     }
   })
   return result

@@ -10,7 +10,7 @@ export function tokenize(code: string, lang: string) {
     throw new MissingGrammarError(lang)
   }
 
-  const prismTokens = Prism.tokenize(code, Prism.languages[lang])
+  const prismTokens = Prism.tokenize(code, grammar)
   const nestedTokens = tokenizeStrings(prismTokens)
   const tokens = flattenTokens(nestedTokens)
 

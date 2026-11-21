@@ -1,11 +1,12 @@
-import { useMemo, type ReactElement, type PropsWithChildren } from 'react'
+import { isValidElement, useMemo, type ReactElement, type ReactNode, type PropsWithChildren } from 'react'
 
+import type { WaveColumnProps } from '../gatsby-theme-waves'
 import { CodeSurfer as CodeStickerSteps } from '../code-surfer/standalone'
 import { readStepFromElement } from '../gatsby-theme-waves/stuff/step-reader'
 
-const isCode = (e?: ReactElement) => e?.type === 'pre'
+const isCode = (e: ReactNode): e is ReactElement => isValidElement(e) && e.type === 'pre'
 
-const getParsedCodeStepsSlice = (steps: ReactElement[], curr: ReactElement) => {
+const getParsedCodeStepsSlice = (steps: ReactNode[], curr: ReactElement) => {
   const stepsSlice = [curr]
   const currentStepIndex = steps.indexOf(curr)
   for (const step of steps.slice(currentStepIndex + 1, steps.length)) {
@@ -20,11 +21,10 @@ const getParsedCodeStepsSlice = (steps: ReactElement[], curr: ReactElement) => {
     }
     stepsSlice.unshift(step)
   }
-  const parsedStepsSlice = stepsSlice.map((element) => {
+  return stepsSlice.flatMap((element) => {
     const parsedStep = readStepFromElement(element)
-    return { ...parsedStep, absoluteProgress: steps.indexOf(element) }
+    return parsedStep ? [{ ...parsedStep, absoluteProgress: steps.indexOf(element) }] : []
   })
-  return parsedStepsSlice
 }
 
 const OpacityStickerStep = ({ variant = 'default', visible, children }: PropsWithChildren<{ variant?: string; visible?: boolean }>) => {
@@ -44,7 +44,11 @@ const OpacityStickerStep = ({ variant = 'default', visible, children }: PropsWit
   )
 }
 
-export const Sticker = ({ progress = 0, steps, variant = 'default' }: { progress: number; steps: ReactElement[]; variant?: string }) => {
+export const Sticker = ({
+  progress = 0,
+  steps,
+  variant = 'default',
+}: Pick<WaveColumnProps, 'progress' | 'steps'> & Partial<Pick<WaveColumnProps, 'variant'>>) => {
   const currentIndex = Math.round(progress)
   let prevIndex = currentIndex - 1
   let prevStep = steps[currentIndex - 1]
@@ -54,11 +58,13 @@ export const Sticker = ({ progress = 0, steps, variant = 'default' }: { progress
 
   const currentCodeStepsSlice = useMemo(() => (isCode(currStep) ? getParsedCodeStepsSlice(steps, currStep) : undefined), [currStep, steps])
 
-  if (currentCodeStepsSlice) {
-    prevIndex = currentCodeStepsSlice[0].absoluteProgress - 1
+  const firstCodeStep = currentCodeStepsSlice?.[0]
+  const lastCodeStep = currentCodeStepsSlice?.at(-1)
+  if (firstCodeStep && lastCodeStep) {
+    prevIndex = firstCodeStep.absoluteProgress - 1
     prevStep = prevIndex < 0 ? undefined : steps[prevIndex]
 
-    nextIndex = currentCodeStepsSlice[currentCodeStepsSlice.length - 1].absoluteProgress + 1
+    nextIndex = lastCodeStep.absoluteProgress + 1
     nexStep = nextIndex > steps.length + 1 ? undefined : steps[nextIndex]
   }
 
@@ -71,11 +77,11 @@ export const Sticker = ({ progress = 0, steps, variant = 'default' }: { progress
       <OpacityStickerStep key={prevIndex} variant={variant}>
         {prevStep}
       </OpacityStickerStep>
-      {isCode(currStep) ? (
+      {currentCodeStepsSlice ? (
         <OpacityStickerStep key={`${currentIndex}-${currentIndex + currentCodeStepsSlice.length}`} variant={variant} visible>
           <CodeStickerSteps
             key={currentIndex}
-            progress={currentCodeStepsSlice.indexOf(currentCodeStepsSlice.find((c) => c.absoluteProgress === currentIndex))}
+            progress={currentCodeStepsSlice.findIndex((c) => c.absoluteProgress === currentIndex)}
             steps={currentCodeStepsSlice}
           />
         </OpacityStickerStep>

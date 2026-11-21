@@ -18,7 +18,10 @@ function useDimensions<T extends HTMLElement | null>(ref: React.MutableRefObject
 
     const containers = ref.current.querySelectorAll('.cs-container') as NodeListOf<HTMLElement>
 
-    const stepsDimensions = Array.from(containers).map((container, i) => getStepDimensions(container, steps[i]))
+    const stepsDimensions = Array.from(containers).flatMap((container, i) => {
+      const step = steps[i]
+      return step ? [getStepDimensions(container, step)] : []
+    })
 
     const containerHeight = Math.max(...stepsDimensions.map((d) => d.containerHeight))
 
@@ -40,8 +43,8 @@ function useDimensions<T extends HTMLElement | null>(ref: React.MutableRefObject
       steps: steps.map((step, i) => ({
         ...step,
         dimensions: {
-          paddingTop: stepsDimensions[i].paddingTop,
-          paddingBottom: stepsDimensions[i].paddingBottom,
+          paddingTop: stepsDimensions[i]?.paddingTop ?? 0,
+          paddingBottom: stepsDimensions[i]?.paddingBottom ?? 0,
         },
       })),
     })

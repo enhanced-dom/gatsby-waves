@@ -58,11 +58,13 @@ export function LineList({ stepPair, t, tokens, types, dimensions, unfocusedStyl
 
       const areTokensAnimated = !isStatic && (Array.isArray(prevFocus) || Array.isArray(nextFocus))
       const areTokensStatic = !areTokensAnimated
+      const lineTokens = tokens[lineKey] ?? []
+      const lineTypes = types[lineKey] ?? []
 
       const tokenElements =
         areTokensStatic &&
-        tokens[lineKey].map((token, tokeni) => (
-          <span className={'token-' + types[lineKey][tokeni]} key={tokeni}>
+        lineTokens.map((token, tokeni) => (
+          <span className={'token-' + lineTypes[tokeni]} key={tokeni}>
             {token}
           </span>
         ))
@@ -113,8 +115,8 @@ export function LineList({ stepPair, t, tokens, types, dimensions, unfocusedStyl
 
       let getTokenStyle: (t: number, i: number) => CSSProperties = emptyStyle
       if (!areTokensStatic) {
-        const fromFocus = tokens[lineKey].map((_, tokeni) => (Array.isArray(prevFocus) ? prevFocus.includes(tokeni) : prevFocus))
-        const toFocus = tokens[lineKey].map((_, tokeni) => (Array.isArray(nextFocus) ? nextFocus.includes(tokeni) : nextFocus))
+        const fromFocus = lineTokens.map((_, tokeni) => (Array.isArray(prevFocus) ? prevFocus.includes(tokeni) : prevFocus))
+        const toFocus = lineTokens.map((_, tokeni) => (Array.isArray(nextFocus) ? nextFocus.includes(tokeni) : nextFocus))
         const fadeInIndex = fadeInLines.indexOf(lineKey)
         const fadeOutIndex = fadeOutLines.indexOf(lineKey)
         getTokenStyle = (t, i) => {
@@ -130,6 +132,8 @@ export function LineList({ stepPair, t, tokens, types, dimensions, unfocusedStyl
 
       return {
         lineKey,
+        lineTokens,
+        lineTypes,
         lineElement,
         tokenElements,
         getLineStyle,
@@ -142,14 +146,14 @@ export function LineList({ stepPair, t, tokens, types, dimensions, unfocusedStyl
   return (
     <React.Fragment>
       {lines.map(
-        ({ lineElement, lineKey, tokenElements, getLineStyle, getTokenStyle, lineNumberElement }) =>
+        ({ lineElement, lineKey, lineTokens, lineTypes, tokenElements, getLineStyle, getTokenStyle, lineNumberElement }) =>
           lineElement || (
             <div style={{ overflow: 'hidden', ...getLineStyle(t) }} key={lineKey}>
               <div style={{ display: 'inline-block' }} className={`cs-line cs-line-${lineKey}`}>
                 {lineNumberElement}
                 {tokenElements ||
-                  tokens[lineKey].map((token, tokeni) => (
-                    <span className={'token-' + types[lineKey][tokeni]} style={getTokenStyle!(t, tokeni)} key={tokeni}>
+                  lineTokens.map((token, tokeni) => (
+                    <span className={'token-' + lineTypes[tokeni]} style={getTokenStyle(t, tokeni)} key={tokeni}>
                       {token}
                     </span>
                   ))}

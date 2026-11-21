@@ -1,41 +1,53 @@
-import { cloneElement, createElement, type ReactNode, type ReactElement, type ComponentProps } from 'react'
+import { cloneElement, createElement, isValidElement, type ReactNode, type ComponentProps, type PropsWithChildren } from 'react'
 
 import { Wave, BarScroller } from '../gatsby-theme-waves'
 import { Sticker } from './sticker.component'
 
-const ComponentWaveSlot = ({ children }) => {
+enum StickerElementType {
+  IMAGE = 'img',
+  CODE = 'pre',
+  RAW = 'raw',
+}
+
+const ComponentWaveSlot = ({ children }: PropsWithChildren) => {
   return children || null
 }
 
-const toColumns = (items: ReactElement[]) => {
-  const columns = Array(2)
-    .fill(null)
-    .map(() => [])
+const isStickerElementType = (type: unknown): type is StickerElementType => Object.values<unknown>(StickerElementType).includes(type)
 
-  items.forEach((item) => {
-    let processedItem: ReactNode = item
-    const isImage = item.type === 'img'
-    const isCode = item.type === 'pre'
-    const isRaw = item.type === 'raw'
-    if (isRaw) {
-      processedItem = item.props?.children ?? null
-    }
-    if (isImage) {
-      processedItem = cloneElement(item, {
+const toStickerStep = (item: ReactNode): ReactNode | undefined => {
+  if (!isValidElement<PropsWithChildren<{ style?: object }>>(item) || !isStickerElementType(item.type)) {
+    return undefined
+  }
+  switch (item.type) {
+    case StickerElementType.RAW:
+      return item.props.children ?? null
+    case StickerElementType.IMAGE:
+      return cloneElement(item, {
         style: { objectFit: 'contain', margin: 0, maxWidth: '100%', maxHeight: '100%' },
       })
-    }
+    case StickerElementType.CODE:
+      return item
+  }
+}
 
-    if (isImage || isCode || isRaw) {
-      columns[0].push(processedItem)
-      columns[1].push(createElement('div', {}, []))
+// Each sticker element (image/code/raw) starts a step; the items that follow it become that step's text.
+// Text items appearing before the first sticker element are dropped.
+const toColumns = (items: ReactNode[]): [ReactNode[], ReactNode[]] => {
+  const stickerSteps: ReactNode[] = []
+  const textSteps: ReactNode[][] = []
+
+  items.forEach((item) => {
+    const stickerStep = toStickerStep(item)
+    if (stickerStep !== undefined) {
+      stickerSteps.push(stickerStep)
+      textSteps.push([])
     } else {
-      const lastStep = columns[0].length - 1
-      columns[1][lastStep].props.children.push(item)
+      textSteps.at(-1)?.push(item)
     }
   })
 
-  return columns as [ReactElement[], ReactElement[]]
+  return [stickerSteps, textSteps.map((textItems, stepIndex) => createElement('div', { key: stepIndex }, ...textItems))]
 }
 
 export const MultiWave = (props: Omit<ComponentProps<typeof Wave>, 'columnComponents' | 'childrenToStepColumns'>) => {

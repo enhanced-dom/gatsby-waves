@@ -1,5 +1,3 @@
-import flat from 'array.prototype.flat'
-
 import { fromEntries } from './object-entries'
 
 type LineIndex = number
@@ -12,7 +10,7 @@ export function parseFocus(focus: string) {
 
   try {
     const parts = focus.split(/,(?![^\[]*\])/g).map(parsePart)
-    return fromEntries(flat(parts))
+    return fromEntries(parts.flat())
   } catch (error) {
     // TODO enhance error
     throw error
@@ -28,10 +26,10 @@ function parsePart(part: string): Part[] {
   // - a line number with a column selector: "2[1,3:5,9]"
   const columnsMatch = part.match(/(\d+)\[(.+)\]/)
   if (columnsMatch) {
-    const [, line, columns] = columnsMatch
+    const [, line, columns = ''] = columnsMatch
     const columnsList = columns.split(',').map(expandString)
     const lineIndex = Number(line) - 1
-    const columnIndexes = flat(columnsList).map((c) => c - 1)
+    const columnIndexes = columnsList.flat().map((c) => c - 1)
     return [[lineIndex, columnIndexes]]
   } else {
     return expandString(part).map((lineNumber) => [lineNumber - 1, true])
@@ -42,7 +40,7 @@ function expandString(part: string) {
   // Transforms something like
   // - "1:3" to [1,2,3]
   // - "4" to [4]
-  const [start, end] = part.split(':')
+  const [start = '', end] = part.split(':')
 
   if (!isNaturalNumber(start)) {
     throw new FocusNumberError(start)
